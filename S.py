@@ -6,7 +6,7 @@ import nmap
 import progressbar
 
 # Función para escanear puertos en una dirección IP
-def escanear_puertos(ip, puertos, stdscr):
+def encontrar_camaras_en_red(ip, puertos, stdscr):
     resultados = {}
     total_puertos = len(puertos)
     
