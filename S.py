@@ -40,10 +40,6 @@ def encontrar_camaras_en_red(puertos):
     
     return camaras_activas
 
-# Función principal para analizar una cámara
-def analizar_camara(ip, puertos, usuario, longitud_contraseña, archivo_credenciales):
-    # ... (el código para generar credenciales y acceder al RTSP de la cámara sigue aquí)
-
 if __name__ == "__main__":
     puertos_objetivo = [554, 2020, 443]  # Puertos que te interesan
     
@@ -66,6 +62,3 @@ if __name__ == "__main__":
             print(f"IP: {ip}")
             for puerto, estado in resultados_puertos.items():
                 print(f"Puerto {puerto}: {estado}")
-            
-            # Analizar cámara
-            analizar_camara(ip, puertos_objetivo, usuario, longitud_contraseña, archivo_credenciales)
